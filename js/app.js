@@ -12,7 +12,7 @@ import { renderPlan } from './render/plan.js';
 import { renderProgress } from './render/progress.js';
 import { renderTransfer } from './render/transfer.js';
 import { renderSettings } from './render/settings.js';
-import { drillPopup, notePopup, safetyPopup } from './render/parts.js';
+import { drillPopup, notePopup, safetyPopup, surfacePopup } from './render/parts.js';
 import { setGate, promote, undoPromotion } from './gates.js';
 
 const VIEWS = [
@@ -90,6 +90,7 @@ function renderModal() {
   if (!m.open) { modalEl.hidden = true; modalEl.innerHTML = ''; return; }
   let content = '';
   if (m.drill) content = drillPopup(m.drill);
+  else if (m.info === 'surface') content = surfacePopup();
   else if (m.info === 'safety') content = safetyPopup(store.ui.today.surface);
   else if (m.info) content = notePopup(m.info);
   modalEl.hidden = false;

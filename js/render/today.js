@@ -9,7 +9,7 @@
 // ============================================================
 
 import { generateSession, lastPainFlag } from '../session.js';
-import { DRILLS } from '../../data/plan.js';
+import { DRILLS, DRILL_SURFACE } from '../../data/plan.js';
 import { bannersHTML, infoButton } from './parts.js';
 
 const MINUTES = [10, 20, 30, 45];
@@ -69,7 +69,7 @@ function surfaceControl(surface) {
   const chip = (id, label) => `<button class="special-chip" data-action="today.surface" data-surf="${id}" aria-pressed="${surface === id}">${label}</button>`;
   return `
 <div class="surface">
-  <div class="label picker-label">Surface</div>
+  <div class="label picker-label">Surface <button class="mini-i" data-action="info.open" data-info="surface" aria-label="Why surface matters"><span aria-hidden="true">i</span></button></div>
   <div class="surface-avail" role="group" aria-label="Surfaces you have today">
     <button class="avail-btn" data-action="today.surface" data-surf="grass" aria-pressed="${grassOn}">GRASS</button>
     <button class="avail-btn" data-action="today.surface" data-surf="solid" aria-pressed="${solidOn}">SOLID</button>
@@ -97,10 +97,11 @@ function phaseTagFor(block) {
 // Only shown in "both" mode, where the split is the point.
 function surfPillFor(block, surface) {
   if (surface !== 'both' || !block.drillId) return '';
-  const needsGrass = !!(DRILLS[block.drillId].flags && DRILLS[block.drillId].flags.cut);
-  return needsGrass
-    ? `<span class="surf-pill grass">on grass</span>`
-    : `<span class="surf-pill solid">on concrete</span>`;
+  const where = (DRILL_SURFACE[block.drillId] || {}).where;
+  if (where === 'grass') return `<span class="surf-pill grass">on grass</span>`;
+  if (where === 'concrete') return `<span class="surf-pill concrete">on concrete</span>`;
+  if (where === 'either') return `<span class="surf-pill either">either</span>`;
+  return '';
 }
 
 function infoKeyFor(block, warmupType) {
@@ -125,28 +126,42 @@ function blockCard(block, ui, warmupType, surface) {
 </div>`;
 }
 
+function energyLabel(e) { return e === 1 ? 'Low' : e === 3 ? 'High' : 'OK'; }
+function painLabel(p) { return p === 1 ? 'niggle' : p === 2 ? 'sharp' : ''; }
+
+function todaysLog(sessions) {
+  if (!sessions.length) return '';
+  const rows = sessions.map((s) => {
+    const bits = [`${s.minutes} min`, `${s.blocksDone.length} block${s.blocksDone.length === 1 ? '' : 's'}`, energyLabel(s.energy)];
+    const pain = painLabel(s.pain);
+    return `<div class="log-row"><span class="log-time">${s.time || '—'}</span><span class="log-detail">${bits.join(' · ')}${pain ? ` · <span class="log-pain p${s.pain}">${pain}</span>` : ''}</span></div>`;
+  }).join('');
+  return `<div class="today-log"><div class="label">Today’s log · ${sessions.length}</div>${rows}</div>`;
+}
+
 function afterCard(store) {
   const { state, ui } = store;
-  const logged = state.sessions.filter((s) => s.date === isoDate(new Date())).slice(-1)[0] || null;
-  const painSel = logged ? logged.pain : ui.today.pain;
-  const energySel = logged ? logged.energy : ui.today.energy;
+  const todayIso = isoDate(new Date());
+  const todaySessions = state.sessions.filter((s) => s.date === todayIso);
+  const painSel = ui.today.pain;
+  const energySel = ui.today.energy;
   const painOpts = [{ id: 0, label: 'None' }, { id: 1, label: 'Niggle' }, { id: 2, label: 'Sharp' }];
   const energyOpts = [{ id: 1, label: 'Low' }, { id: 2, label: 'OK' }, { id: 3, label: 'High' }];
 
-  const doneControl = logged
-    ? `<div class="markdone done">✓ DONE${logged.time ? ` · ${logged.time}` : ''}</div>`
-    : `<button class="markdone" data-action="today.save">MARK DONE</button>`;
-  const warn = painSel === 2
+  const anySharp = painSel === 2 || todaySessions.some((s) => s.pain === 2);
+  const warn = anySharp
     ? `<div class="warnbox tint-tan"><p>Sharp pain is a stop sign, not a setback. You did the right thing by logging it.</p><span class="warn-sub">TOMORROW · SCALED TO STATIONARY WORK</span></div>`
     : '';
+  const btnLabel = todaySessions.length ? 'LOG ANOTHER SESSION' : 'MARK DONE';
 
   return `
 <div class="card after">
-  <div class="label">After the session</div>
-  <div class="after-row"><span class="after-key">DONE</span>${doneControl}</div>
-  <div class="after-row"><span class="after-key">PAIN</span><div class="seg light">${segRow('today.pain', painSel, painOpts, !logged)}</div></div>
-  <div class="after-row"><span class="after-key">ENERGY</span><div class="seg light">${segRow('today.energy', energySel, energyOpts, !logged)}</div></div>
+  <div class="label">${todaySessions.length ? 'Log a session' : 'After the session'}</div>
+  <div class="after-row"><span class="after-key">PAIN</span><div class="seg light">${segRow('today.pain', painSel, painOpts, true)}</div></div>
+  <div class="after-row"><span class="after-key">ENERGY</span><div class="seg light">${segRow('today.energy', energySel, energyOpts, true)}</div></div>
+  <button class="markdone full" data-action="today.save">${btnLabel}</button>
   ${warn}
+  ${todaysLog(todaySessions)}
 </div>`;
 }
 

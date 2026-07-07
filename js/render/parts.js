@@ -4,9 +4,50 @@
 // inline <b>/<em> markup is intentionally passed through.
 // ============================================================
 
-import { DRILLS } from '../../data/plan.js';
+import { DRILLS, DRILL_SURFACE } from '../../data/plan.js';
 import { DIAGRAMS } from '../../data/diagrams.js';
 import { isChecked } from '../gates.js';
+
+// ------------------------------------------------------------
+// Surface physics — a small animated demo of how the ball behaves
+// on grass (drags to a stop) vs concrete (rolls fast & true).
+// CSS keyframes drive .demo-ball; honours prefers-reduced-motion.
+// ------------------------------------------------------------
+function surfLabel(where) {
+  return where === 'grass' ? 'On grass' : where === 'concrete' ? 'On concrete' : 'Either surface';
+}
+
+export function surfaceDemo(where) {
+  if (where !== 'grass' && where !== 'concrete') return '';
+  const grass = where === 'grass';
+  const lane = grass ? '#e9efe6' : '#eceadf';
+  const laneB = grass ? '#bfceba' : '#ddd8c9';
+  const marker = grass
+    ? '<line x1="150" y1="18" x2="150" y2="50" stroke="#1f6b3b" stroke-width="1.5" stroke-dasharray="3 3"></line><text x="150" y="14" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="8" fill="#6f6a5b">stops</text>'
+    : '<line x1="236" y1="18" x2="236" y2="50" stroke="#8a6a33" stroke-width="1.5" stroke-dasharray="3 3"></line><text x="232" y="14" text-anchor="end" font-family="ui-monospace,Menlo,monospace" font-size="8" fill="#8a6a33">runs on…</text>';
+  const cap = grass
+    ? 'Grass drags the ball to a stop — it stays with you through the cut.'
+    : 'Concrete rolls fast and true — great feedback, but keep your touch light or it runs.';
+  return `
+<div class="surf-demo">
+  <svg viewBox="0 0 260 56" width="260" height="56" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <rect x="0" y="34" width="260" height="8" rx="2" fill="${lane}" stroke="${laneB}"></rect>
+    ${marker}
+    <g transform="translate(14,30)"><rect x="-12" y="-6" width="22" height="12" rx="6" fill="#fbfaf5" stroke="#13110d" stroke-width="1.5"></rect></g>
+    <circle class="demo-ball ${grass ? 'grass' : 'concrete'}" cx="26" cy="30" r="7" fill="#fbfaf5" stroke="#13110d" stroke-width="1.5"></circle>
+  </svg>
+  <p class="surf-cap">${cap}</p>
+</div>`;
+}
+
+export function surfacePopup() {
+  return `
+<div class="modal-head"><div class="modal-title">Grass vs concrete</div><div class="modal-tagline">Why the surface changes the drill</div></div>
+${surfaceDemo('grass')}
+${surfaceDemo('concrete')}
+<p class="modal-p"><b>It comes down to friction and hardness.</b> Grass grips and drags the ball, so it slows and stops — that’s what keeps it with you when you cut, weave, or stop it dead, and the soft ground spares your hip and shins on the hard direction-changes (studs bite for grip, too). Concrete is smooth and hard: the ball rolls fast, far, and dead-true with no bobble — perfect for grooving a clean touch and true passes — but there’s almost no friction to stop a cut (the ball skids, you slip), and every landing pounds your joints.</p>
+<p class="modal-p"><b>So:</b> touch, juggling, straight-line dribbling and passing live on <b>concrete</b>; anything that cuts, turns, or stops at pace lives on <b>grass</b>. On a day you’ve got both, each drill is tagged so you know where to stand.</p>`;
+}
 
 const STATE_LABEL = {
   locked: 'Locked', learning: 'Learning', main: 'Main',
@@ -23,6 +64,10 @@ export function drillBody(id) {
   const d = DRILLS[id];
   if (!d) return '';
   const diagram = DIAGRAMS[id] ? `<div class="diagram">${DIAGRAMS[id]}</div>` : '';
+  const surf = DRILL_SURFACE[id];
+  const surfSection = surf
+    ? `<div class="surf-why"><span class="surf-pill ${surf.where}">${surfLabel(surf.where)}</span><p class="surf-why-text">${surf.why}</p>${surfaceDemo(surf.where)}</div>`
+    : '';
   const startbox = d.startHere
     ? `<div class="startbox"><div class="box-label">START HERE — CAN’T FAIL</div><p>${d.startHere}</p></div>`
     : '';
@@ -38,7 +83,7 @@ export function drillBody(id) {
   const chips = (d.tags || []).length
     ? `<div class="chips">${d.tags.map((t) => `<span class="chip ${t.type}">${t.text}</span>`).join('')}</div>`
     : '';
-  return `<div class="drill-body">${diagram}${startbox}${full}${cues}${addbox}${chips}</div>`;
+  return `<div class="drill-body">${diagram}${surfSection}${startbox}${full}${cues}${addbox}${chips}</div>`;
 }
 
 // Drill row for the Plan view (expandable, with a status chip + optional note).

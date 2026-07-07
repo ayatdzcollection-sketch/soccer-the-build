@@ -7,7 +7,7 @@
 // server root (local) and under /soccer-the-build/ (GitHub Pages).
 // ============================================================
 
-const CACHE = 'thebuild-v4';
+const CACHE = 'thebuild-v5';
 const ASSETS = [
   './', 'index.html', 'manifest.json', 'css/style.css',
   'js/app.js', 'js/state.js', 'js/session.js', 'js/gates.js',
@@ -18,8 +18,11 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e) => {
+  // Fetch fresh (bypass the HTTP cache) so a new version never precaches stale files.
   e.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE).then((c) => Promise.all(
+      ASSETS.map((u) => fetch(new Request(u, { cache: 'reload' })).then((r) => (r && r.ok ? c.put(u, r) : null)).catch(() => null))
+    )).then(() => self.skipWaiting())
   );
 });
 

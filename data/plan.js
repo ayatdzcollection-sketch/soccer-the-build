@@ -280,6 +280,29 @@ export const DRILLS = {
   },
 };
 
+// ------------------------------------------------------------
+// SURFACE — where each drill belongs and WHY (friction + hardness).
+// where: 'grass' | 'concrete' | 'either'. `grass` drills are exactly
+// the ones with flags.cut (the generator drops those on solid/wet).
+// ------------------------------------------------------------
+export const DRILL_SURFACE = {
+  toeTaps: { where: 'concrete', why: 'Nothing rolls here, so friction doesn’t matter — you just want a flat, hard spot so the still ball doesn’t wobble and you feel each tap.' },
+  foundations: { where: 'concrete', why: 'Small inside-foot pushes give the cleanest feedback on flat, hard ground — the ball rolls true between your feet instead of bobbling or dying in the grass.' },
+  soleRolls: { where: 'concrete', why: 'Rolling the ball under your sole needs a smooth surface. Grass grabs it and stops the roll; concrete lets it glide so you actually feel the control.' },
+  juggling: { where: 'either', why: 'The ball’s in the air, so the surface barely matters — just pick a flat spot so your drop and catch are predictable.' },
+  dribbleLaces: { where: 'concrete', why: 'On concrete the ball rolls fast and dead-true, so a touch that’s too firm runs away — that’s exactly the feedback that trains the right weight. Grass works too and is more forgiving, since it slows the ball for you.' },
+  coneWeave: { where: 'grass', why: 'Every weave touch cuts the ball sideways, and grass’s drag pulls it to a stop so it stays inside the cones. On concrete there’s almost no resistance — the ball keeps rolling straight through and escapes — and the quick side-cuts pound your joints with no grip. Grass keeps the ball with you and cushions the cuts.' },
+  pullBack: { where: 'grass', why: 'The sole-drag needs grip to catch and stop the ball; on concrete it just skids away. And the 180° plant-and-pivot is a hard cut — grass cushions it and your studs hold, where concrete jars the hip and slips.' },
+  redLight: { where: 'grass', why: 'Stopping the ball dead under your sole relies on the grass gripping it — on concrete a stopped ball skids out from under you. Braking your own body at pace is also the classic hip/shin stress, and grass absorbs it.' },
+  pushPass: { where: 'concrete', why: 'A pass wants a flat, true surface so the ball goes exactly where you aim and the rebound is predictable. Grass slows and deflects it, hiding whether your strike was actually clean.' },
+  wallClose: { where: 'concrete', why: 'A wall plus smooth concrete gives fast, true rebounds, so you bank many clean reps. Grass kills the return and makes the ball bobble back at you.' },
+  firstTouch: { where: 'concrete', why: 'You’re reading a true, predictable rebound and cushioning it — concrete keeps the roll honest so you learn the exact weight of your touch.' },
+  wallStepped: { where: 'concrete', why: 'Same as the close wall work: you want the firm, true roll of a hard surface so distance and angle come from your strike, not from the grass.' },
+  smallSided: { where: 'grass', why: 'Real play means sprinting, cutting, stopping and contact — all of which need grass for grip and to spare your joints. Games on concrete are a fast track to shin and hip trouble.' },
+  soloUpkeep: { where: 'either', why: 'It’s a mix — do the touch and passing bits on concrete and the moves and turns on grass, or just use whatever you’re standing on.' },
+  feint: { where: 'grass', why: 'A feint is a sharp change of direction at a defender — you need grip to plant and push off, and a soft surface for the cut. On concrete you’d slip and jar the joint.' },
+};
+
 // Drill display order (used by generator rotation & Plan view)
 export const DRILL_ORDER = [
   'toeTaps', 'foundations', 'soleRolls', 'juggling',

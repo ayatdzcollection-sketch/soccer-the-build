@@ -215,7 +215,7 @@ a:hover { color: var(--pitch-dark); }
   font-weight: 700; text-transform: uppercase; padding: 2px 7px; border-radius: 4px;
 }
 .surf-pill.grass { color: var(--pitch); background: var(--green-tint); border: 1px solid var(--green-tint-b); }
-.surf-pill.solid { color: var(--muted); background: var(--paper); border: 1px solid var(--line); }
+.surf-pill.solid, .surf-pill.concrete, .surf-pill.either { color: var(--muted); background: var(--paper); border: 1px solid var(--line); }
 
 /* blocks (compact rows; how-to lives in the ⓘ popup) */
 .blocks { display: flex; flex-direction: column; gap: 9px; }
@@ -282,6 +282,23 @@ a:hover { color: var(--pitch-dark); }
   background: none; border: 1.5px solid var(--pitch); color: var(--pitch);
 }
 .markdone.done { background: var(--pitch); border-color: var(--pitch); color: var(--paper); cursor: default; }
+.markdone.full { width: 100%; flex: none; }
+
+/* small info button beside a label */
+.mini-i {
+  display: inline-grid; place-items: center; width: 20px; height: 20px; vertical-align: middle; margin-left: 5px;
+  border-radius: 50%; border: 1.5px solid var(--muted); background: none; color: var(--muted); cursor: pointer; padding: 0;
+}
+.mini-i > span { font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-size: 12px; line-height: 1; }
+.mini-i:hover { border-color: var(--pitch); color: var(--pitch); }
+
+/* today's log (multiple sessions per day) */
+.today-log { margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--divider); display: flex; flex-direction: column; gap: 7px; }
+.log-row { display: flex; gap: 10px; align-items: baseline; }
+.log-time { font-family: var(--mono); font-size: 11px; color: var(--pitch); flex: none; min-width: 62px; }
+.log-detail { font-size: 13.5px; color: var(--muted); }
+.log-pain.p1 { color: var(--tan-label); }
+.log-pain.p2 { color: #9c3b2e; font-weight: 700; }
 .after .warnbox p { font-size: 13.5px; line-height: 1.5; margin-bottom: 6px; }
 .after .warn-sub { font-family: var(--mono); font-size: 9.5px; letter-spacing: .12em; font-weight: 700; color: var(--tan-label); }
 
@@ -496,6 +513,20 @@ input[type="file"] { display: none; }
 /* diagram slot (populated from the design mock) */
 .diagram { background: var(--green-tint); border: 1px solid var(--green-tint-b); border-radius: 10px; padding: 8px 10px; }
 .diagram svg { display: block; width: 100%; height: auto; }
+
+/* surface "why" + animated grass-vs-concrete physics demo */
+.surf-why { display: flex; flex-direction: column; gap: 8px; }
+.surf-why .surf-pill { align-self: flex-start; }
+.surf-why-text { font-size: 13.5px; line-height: 1.5; color: #454136; }
+.surf-demo { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px 6px; }
+.surf-demo svg { display: block; width: 100%; height: auto; }
+.surf-cap { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+.demo-ball { will-change: transform; }
+@keyframes rollGrass { 0% { transform: translateX(0); } 55% { transform: translateX(120px); } 100% { transform: translateX(120px); } }
+@keyframes rollConcrete { 0% { transform: translateX(0); } 72% { transform: translateX(220px); } 100% { transform: translateX(220px); } }
+.demo-ball.grass { animation: rollGrass 2.6s cubic-bezier(.12, .7, .25, 1) infinite; }
+.demo-ball.concrete { animation: rollConcrete 2.6s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .demo-ball { animation: none !important; } }
 
 /* ============================================================
    Safety strip (Today) + collapsible science (Plan)
