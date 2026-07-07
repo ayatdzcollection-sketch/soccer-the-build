@@ -194,6 +194,29 @@ a:hover { color: var(--pitch-dark); }
 
 .session-meta { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; color: var(--faint); }
 
+/* surface control: GRASS/SOLID availability + WET/INDOORS overrides */
+.surface { display: flex; flex-direction: column; gap: 8px; }
+.surface-avail { display: flex; gap: 8px; }
+.avail-btn {
+  flex: 1; min-height: var(--tap); cursor: pointer; font-family: var(--mono); font-size: 13px; font-weight: 700;
+  border: 1.5px solid var(--ink); border-radius: 10px; background: var(--card); color: var(--ink); letter-spacing: .03em;
+}
+.avail-btn[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.surface-special { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.special-lbl { font-family: var(--mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
+.special-chip {
+  cursor: pointer; font-family: var(--mono); font-size: 11px; padding: 7px 12px; min-height: 36px;
+  border: 1px solid var(--line); border-radius: 20px; background: var(--paper); color: var(--muted);
+}
+.special-chip[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+.surf-pill {
+  display: inline-block; margin-top: 6px; font-family: var(--mono); font-size: 9px; letter-spacing: .06em;
+  font-weight: 700; text-transform: uppercase; padding: 2px 7px; border-radius: 4px;
+}
+.surf-pill.grass { color: var(--pitch); background: var(--green-tint); border: 1px solid var(--green-tint-b); }
+.surf-pill.solid { color: var(--muted); background: var(--paper); border: 1px solid var(--line); }
+
 /* blocks (compact rows; how-to lives in the ⓘ popup) */
 .blocks { display: flex; flex-direction: column; gap: 9px; }
 .block {

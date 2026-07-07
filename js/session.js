@@ -90,7 +90,7 @@ function scaleDownSession(reqMinutes) {
 export function generateSession(input) {
   const {
     minutes: reqMinutes = 30,
-    conditions = 'dry',
+    surface = 'both',
     drillStates = {},
     hipStatus = 'quiet',
     lastPain = 0,
@@ -108,18 +108,24 @@ export function generateSession(input) {
     banners.push({ kind: 'warn', text: 'Hip flared — turns stay at walking pace today.' });
   }
 
-  // Rule 2 — conditions filter.
+  // Rule 2 — surface filter. Cutting/turning drills (flags.cut) need
+  // grass; everything else is fine on solid ground too. Surfaces:
+  //   both   → grass available for cuts, solid for touch (everyday)
+  //   grass  → everything on grass
+  //   solid  → solid only; cuts/turns saved for a grass day
+  //   wet    → wet grass; no cuts (slip risk)
+  //   indoors→ hard indoor floor; stationary only, capped
   let minutes = reqMinutes;
-  let stationaryOnly = false;
-  if (conditions === 'wet') {
-    banners.push({ kind: 'info', text: 'No turns or cuts on wet grass — today is straight-line and stationary work.' });
-  } else if (conditions === 'indoorsHard') {
-    stationaryOnly = true;
+  const stationaryOnly = surface === 'indoors';
+  const dropCuts = surface === 'wet' || surface === 'solid';
+
+  if (surface === 'wet') {
+    banners.push({ kind: 'info', text: 'Wet grass — no turns or cuts today; straight-line and stationary work only.' });
+  } else if (surface === 'solid') {
+    banners.push({ kind: 'info', text: 'Solid ground — turns & cuts are saved for a grass day. Cushioned trainers, never cleats.' });
+  } else if (surface === 'indoors') {
     minutes = Math.min(minutes, 20);
-    banners.push({
-      kind: 'info',
-      text: 'Hard surface — stationary work only, keep it under 20 minutes. Cushioned trainers, never cleats.',
-    });
+    banners.push({ kind: 'info', text: 'Indoors — stationary work only, keep it under 20 minutes. Cushioned trainers, never cleats.' });
   }
 
   const sched = SCHEDULE[minutes] || SCHEDULE[30];
@@ -135,7 +141,7 @@ export function generateSession(input) {
     if (f.stretchSkill) return false; // handled in its own slot
     // conditions
     if (stationaryOnly && !f.stationary) return false;
-    if (conditions === 'wet' && f.cut) return false; // no turns/cuts on wet grass
+    if (dropCuts && f.cut) return false; // cuts/turns need grass
     // hip flare drops red light / green light for the day
     if (flared && id === 'redLight') return false;
     return true;
@@ -197,7 +203,7 @@ export function generateSession(input) {
     blocks: withRanges(raw),
     banners,
     minutes,
-    meta: { scaledDown: false, warmupType: anyMovement ? 'dynamic' : 'ball', mainPicks: picks },
+    meta: { scaledDown: false, warmupType: anyMovement ? 'dynamic' : 'ball', mainPicks: picks, surface },
   };
 }
 

@@ -55,7 +55,7 @@ export function defaultState() {
     gates: {}, // { [phaseId]: { [gateItemId]: boolean } }
     sessions: [], // { date, minutes, blocksDone:[id], pain:0|1|2, energy:1|2|3 }
     weeklyReviews: [], // { date, bestFoundationsSec, jugglingPB, note, filmTarget }
-    settings: { defaultMinutes: 30, conditions: 'dry' },
+    settings: { defaultMinutes: 30, surface: 'both' },
     rotationIndex: 0, // day-to-day main-block rotation
     undoSnapshot: null, // one-deep { drillStates, phase, drillNotes } for promotion undo
   };
@@ -122,7 +122,7 @@ export function normalize(state) {
     gates: s.gates && typeof s.gates === 'object' && !Array.isArray(s.gates) ? s.gates : {},
     sessions: Array.isArray(s.sessions) ? s.sessions.filter(isValidSession) : [],
     weeklyReviews: Array.isArray(s.weeklyReviews) ? s.weeklyReviews.filter((r) => r && typeof r === 'object') : [],
-    settings: { ...d.settings, ...(s.settings && typeof s.settings === 'object' ? s.settings : {}) },
+    settings: { defaultMinutes: 30, surface: 'both' },
     rotationIndex: Number.isFinite(s.rotationIndex) ? Math.floor(s.rotationIndex) : 0,
     undoSnapshot: s.undoSnapshot && typeof s.undoSnapshot === 'object' ? s.undoSnapshot : null,
   };
@@ -136,9 +136,15 @@ export function normalize(state) {
     }
   }
 
-  // Settings sanity
-  if (![10, 20, 30, 45].includes(out.settings.defaultMinutes)) out.settings.defaultMinutes = 30;
-  if (!['dry', 'wet', 'indoorsHard'].includes(out.settings.conditions)) out.settings.conditions = 'dry';
+  // Settings sanity + legacy conditions → surface migration
+  const ss = s.settings && typeof s.settings === 'object' ? s.settings : {};
+  if ([10, 20, 30, 45].includes(ss.defaultMinutes)) out.settings.defaultMinutes = ss.defaultMinutes;
+  const SURFACES = ['both', 'grass', 'solid', 'wet', 'indoors'];
+  if (SURFACES.includes(ss.surface)) out.settings.surface = ss.surface;
+  else {
+    const LEGACY = { dry: 'both', wet: 'wet', indoorsHard: 'indoors' };
+    if (LEGACY[ss.conditions]) out.settings.surface = LEGACY[ss.conditions];
+  }
 
   return out;
 }

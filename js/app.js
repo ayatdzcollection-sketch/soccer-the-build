@@ -31,7 +31,7 @@ const store = {
     openDrills: new Set(),
     promoHidden: false,
     toast: '',
-    today: { minutes: 30, conditions: 'dry', checked: new Set(), pain: 0, energy: 2, session: null },
+    today: { minutes: 30, surface: 'both', checked: new Set(), pain: 0, energy: 2, session: null },
     plan: { section: 'phases' },
     settings: { msg: '', msgTone: '', confirmReset: false },
     modal: { open: false, drill: null, info: null },
@@ -90,7 +90,7 @@ function renderModal() {
   if (!m.open) { modalEl.hidden = true; modalEl.innerHTML = ''; return; }
   let content = '';
   if (m.drill) content = drillPopup(m.drill);
-  else if (m.info === 'safety') content = safetyPopup(store.ui.today.conditions);
+  else if (m.info === 'safety') content = safetyPopup(store.ui.today.surface);
   else if (m.info) content = notePopup(m.info);
   modalEl.hidden = false;
   modalEl.innerHTML = `
@@ -116,6 +116,26 @@ function closeModal() {
 // ------------------------------------------------------------
 // Actions
 // ------------------------------------------------------------
+// GRASS/SOLID are availability toggles (you can have both); WET/INDOORS
+// are single-select "just today" overrides. You can't have neither
+// grass nor solid — tapping the sole-active surface is a no-op.
+function nextSurface(cur, btn) {
+  if (btn === 'wet') return cur === 'wet' ? 'both' : 'wet';
+  if (btn === 'indoors') return cur === 'indoors' ? 'both' : 'indoors';
+  if (cur === 'wet' || cur === 'indoors') return btn; // leaving a special → that single surface
+  const hasGrass = cur === 'both' || cur === 'grass';
+  const hasSolid = cur === 'both' || cur === 'solid';
+  if (btn === 'grass') {
+    if (hasGrass && hasSolid) return 'solid';
+    if (hasGrass) return 'grass';
+    return 'both';
+  }
+  // btn === 'solid'
+  if (hasGrass && hasSolid) return 'grass';
+  if (hasSolid) return 'solid';
+  return 'both';
+}
+
 function dispatch(action, ds, e) {
   const { state, ui } = store;
   switch (action) {
@@ -127,9 +147,9 @@ function dispatch(action, ds, e) {
       store.save();
       renderActive();
       break;
-    case 'today.conditions':
-      ui.today.conditions = ds.value;
-      state.settings.conditions = ds.value;
+    case 'today.surface':
+      ui.today.surface = nextSurface(ui.today.surface, ds.surf);
+      state.settings.surface = ui.today.surface;
       ui.today.checked.clear();
       store.save();
       renderActive();
@@ -306,7 +326,7 @@ function resetUiToState() {
   store.ui.promoHidden = false;
   store.ui.today = {
     minutes: s.settings.defaultMinutes,
-    conditions: s.settings.conditions,
+    surface: s.settings.surface,
     checked: new Set(), pain: 0, energy: 2, session: null,
   };
   store.ui.plan = { section: 'phases' };

@@ -7,7 +7,7 @@
 // server root (local) and under /soccer-the-build/ (GitHub Pages).
 // ============================================================
 
-const CACHE = 'thebuild-v3';
+const CACHE = 'thebuild-v4';
 const ASSETS = [
   './', 'index.html', 'manifest.json', 'css/style.css',
   'js/app.js', 'js/state.js', 'js/session.js', 'js/gates.js',

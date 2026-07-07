@@ -129,11 +129,13 @@ export const HOWTO = {
   },
 };
 
-function footwearFull(conditions) {
-  switch (conditions) {
+function footwearFull(surface) {
+  switch (surface) {
+    case 'grass': return 'Grass — FG cleats or turf shoes once you’re moving.';
+    case 'solid': return 'Concrete / solid ground — cushioned trainers only, never cleats (shin-splint history). Keep cutting and turning for a grass day.';
     case 'wet': return 'Wet grass — turf shoes or cushioned trainers, and watch your footing. A slip under load is a classic hip-flexor or groin injury.';
-    case 'indoorsHard': return 'Indoors or driveway — cushioned trainers only, never cleats, never socks on smooth floors (shin-splint history).';
-    default: return 'Dry grass — FG cleats or turf shoes once you’re moving; cushioned trainers on a hard driveway.';
+    case 'indoors': return 'Indoors — cushioned trainers only, never cleats, never socks on smooth floors (shin-splint history).';
+    default: return 'You’ve got both today — cushioned trainers on the concrete for touch work; FG cleats or turf on the grass once you’re moving and cutting.';
   }
 }
 
@@ -154,11 +156,12 @@ export function notePopup(key) {
   return `<div class="modal-head"><div class="modal-title">${h.title}</div></div><p class="modal-p">${h.body}</p>`;
 }
 
-export function safetyPopup(conditions) {
+export function safetyPopup(surface) {
   return `
 <div class="modal-head"><div class="modal-title">Safety rules</div></div>
 <p class="modal-p"><b>Pain.</b> Sharp or pinching pain — especially at the front of the hip on a knee drive, cut, or stop — means stop that movement, finish with stationary work, and tell your PT. Dull next-day soreness is normal.</p>
-<p class="modal-p"><b>Footwear.</b> ${footwearFull(conditions)}</p>
+<p class="modal-p"><b>Surface.</b> Touch, juggling and straight-line dribbling are fine on concrete; turns and cuts belong on grass, where a slip or a hard stop won’t punish the hip or shins.</p>
+<p class="modal-p"><b>Footwear.</b> ${footwearFull(surface)}</p>
 <p class="modal-p"><b>Weather.</b> Cold (&lt;~35°F): extend the warm-up, keep moving, nothing maximal until warm. Heat: shorten it, find shade, drink water.</p>
 <p class="modal-p"><b>Missed days.</b> Resume where you left off; the first day back runs about 20% lighter. No make-up sessions — daily beats long.</p>`;
 }

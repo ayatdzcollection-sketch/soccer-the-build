@@ -1,8 +1,11 @@
 // ============================================================
 // js/render/today.js — the daily companion (design: 1a / 1c).
-// Compact block rows: title + one cue + ⓘ how-to popup + check.
-// Header reflects a phase "bridge" honestly when the session spans
-// more than one phase (the current starting position is 1 → 2a).
+// Surface model: GRASS + SOLID are the everyday toggles (you have
+// both outside on a good day); WET / INDOORS are non-central "just
+// today" overrides. Which drills a surface allows depends on the
+// drill — cutting/turning needs grass; touch/straight-line is fine
+// on solid ground. In "both" mode each block is tagged with where
+// to do it.
 // ============================================================
 
 import { generateSession, lastPainFlag } from '../session.js';
@@ -10,14 +13,10 @@ import { DRILLS } from '../../data/plan.js';
 import { bannersHTML, infoButton } from './parts.js';
 
 const MINUTES = [10, 20, 30, 45];
-const CONDITIONS = [
-  { id: 'dry', label: 'DRY GRASS', flex: 1.2 },
-  { id: 'wet', label: 'WET', flex: 1 },
-  { id: 'indoorsHard', label: 'INDOORS', flex: 1 },
-];
 const ORDER = ['p1', 'p2a', 'p2b', 'p3', 'p4'];
 const PHASE_LABEL = { p1: 'PHASE 1', p2a: 'PHASE 2A', p2b: 'PHASE 2B', p3: 'PHASE 3', p4: 'PHASE 4' };
 const PHASE_NUM = { p1: '1', p2a: '2A', p2b: '2B', p3: '3', p4: '4' };
+const TAG_LABEL = { p1: 'P1', p2a: '2A', p2b: '2B', p3: 'P3', p4: 'P4' };
 const PHASE_SHORT = { p1: 'Ball mastery', p2a: 'Walking dribble', p2b: 'Turns & stops', p3: 'Wall passing', p4: 'Game shape' };
 const DRILL_SHORT = {
   toeTaps: 'toe taps', foundations: 'foundations', soleRolls: 'sole rolls', juggling: 'juggling',
@@ -42,11 +41,13 @@ function subtitleFor(session) {
   if (!names.length) return 'Warm-up and touch work.';
   return cap(names.join(' + ')) + '.';
 }
-function footwearShort(conditions) {
-  switch (conditions) {
+function footwearShort(surface) {
+  switch (surface) {
+    case 'grass': return 'Grass — FG cleats or turf shoes once moving';
+    case 'solid': return 'Concrete — cushioned trainers, never cleats';
     case 'wet': return 'Wet — turf/cushioned, mind your footing';
-    case 'indoorsHard': return 'Indoors — cushioned trainers, no cleats';
-    default: return 'Dry grass — cleats or turf once moving';
+    case 'indoors': return 'Indoors — cushioned trainers, no cleats';
+    default: return 'Concrete for touch, grass for turns — cushioned trainers on concrete';
   }
 }
 
@@ -55,11 +56,51 @@ function segRow(action, current, opts, interactive = true) {
     const val = typeof o === 'object' ? o.id : o;
     const label = typeof o === 'object' ? o.label : String(o);
     const on = String(current) === String(val);
-    const flex = (typeof o === 'object' && o.flex) ? ` style="flex:${o.flex}"` : '';
     const act = interactive ? ` data-action="${action}" data-value="${val}"` : '';
     const tag = interactive ? 'button' : 'span';
-    return `<${tag} class="seg-cell"${flex}${act} aria-pressed="${on}">${label}</${tag}>`;
+    return `<${tag} class="seg-cell"${act} aria-pressed="${on}">${label}</${tag}>`;
   }).join('');
+}
+
+// Surface control: two availability toggles + two "just today" chips.
+function surfaceControl(surface) {
+  const grassOn = surface === 'both' || surface === 'grass';
+  const solidOn = surface === 'both' || surface === 'solid';
+  const chip = (id, label) => `<button class="special-chip" data-action="today.surface" data-surf="${id}" aria-pressed="${surface === id}">${label}</button>`;
+  return `
+<div class="surface">
+  <div class="label picker-label">Surface</div>
+  <div class="surface-avail" role="group" aria-label="Surfaces you have today">
+    <button class="avail-btn" data-action="today.surface" data-surf="grass" aria-pressed="${grassOn}">GRASS</button>
+    <button class="avail-btn" data-action="today.surface" data-surf="solid" aria-pressed="${solidOn}">SOLID</button>
+  </div>
+  <div class="surface-special">
+    <span class="special-lbl">Just today</span>
+    ${chip('wet', 'Wet grass')}
+    ${chip('indoors', 'Indoors')}
+  </div>
+</div>`;
+}
+
+const TAG_MAP = TAG_LABEL;
+function phaseTagFor(block) {
+  if (block.drillId) {
+    const ph = DRILLS[block.drillId].phase;
+    return { text: TAG_MAP[ph] || ph.toUpperCase(), cls: `ph-${ph}` };
+  }
+  if (block.kind === 'warmup') return { text: 'WARM', cls: 'ph-gen' };
+  if (block.kind === 'weakfoot') return { text: 'WEAK', cls: 'ph-gen' };
+  if (block.kind === 'cooldown') return { text: 'COOL', cls: 'ph-gen' };
+  return null;
+}
+
+// Only shown in "both" mode, where the split is the point.
+function surfPillFor(block, surface) {
+  if (surface !== 'both' || !block.drillId) return '';
+  const needsGrass = !!(DRILLS[block.drillId].flags && DRILLS[block.drillId].flags.cut);
+  return needsGrass
+    ? `<span class="surf-pill grass">on grass</span>`
+    : `<span class="surf-pill solid">on concrete</span>`;
 }
 
 function infoKeyFor(block, warmupType) {
@@ -69,35 +110,22 @@ function infoKeyFor(block, warmupType) {
   return null;
 }
 
-const TAG_LABEL = { p1: 'P1', p2a: '2A', p2b: '2B', p3: 'P3', p4: 'P4' };
-
-// Small phase tag per block, so the bridge (mixing phases) is legible.
-function phaseTagFor(block) {
-  if (block.drillId) {
-    const ph = DRILLS[block.drillId].phase;
-    return { text: TAG_LABEL[ph] || ph.toUpperCase(), cls: `ph-${ph}` };
-  }
-  if (block.kind === 'warmup') return { text: 'WARM', cls: 'ph-gen' };
-  if (block.kind === 'weakfoot') return { text: 'WEAK', cls: 'ph-gen' };
-  if (block.kind === 'cooldown') return { text: 'COOL', cls: 'ph-gen' };
-  return null;
-}
-
-function blockCard(block, ui, warmupType) {
+function blockCard(block, ui, warmupType, surface) {
   const checked = ui.today.checked.has(block.id);
   const infoAttr = block.drillId ? `data-drill="${block.drillId}"` : `data-info="${infoKeyFor(block, warmupType)}"`;
   const tag = phaseTagFor(block);
   const tagHTML = tag ? `<span class="phase-tag ${tag.cls}">${tag.text}</span>` : '';
+  const surfPill = surfPillFor(block, surface);
   return `
 <div class="block${checked ? ' done' : ''}">
   <div class="time-col"><span class="time">${block.range}</span>${tagHTML}</div>
-  <div class="b-main"><div class="b-title">${block.name}</div><div class="b-cue">${block.cue}</div></div>
+  <div class="b-main"><div class="b-title">${block.name}</div><div class="b-cue">${block.cue}</div>${surfPill}</div>
   ${infoButton(infoAttr)}
   <input type="checkbox" class="check" data-action="today.block" data-block="${block.id}"${checked ? ' checked' : ''} aria-label="Mark done: ${block.name}">
 </div>`;
 }
 
-function afterCard(store, session) {
+function afterCard(store) {
   const { state, ui } = store;
   const logged = state.sessions.filter((s) => s.date === isoDate(new Date())).slice(-1)[0] || null;
   const painSel = logged ? logged.pain : ui.today.pain;
@@ -125,10 +153,10 @@ function afterCard(store, session) {
 export function renderToday(store) {
   const { state, ui } = store;
   const minutes = ui.today.minutes;
-  const conditions = ui.today.conditions;
+  const surface = ui.today.surface;
 
   const session = generateSession({
-    minutes, conditions,
+    minutes, surface,
     drillStates: state.drillStates,
     hipStatus: state.hipStatus,
     lastPain: lastPainFlag(state.sessions),
@@ -148,10 +176,10 @@ export function renderToday(store) {
   const pickers = `
 <div class="pickers">
   <div><div class="label picker-label">Time</div><div class="seg" role="group" aria-label="Minutes available">${segRow('today.minutes', minutes, MINUTES)}</div></div>
-  <div><div class="label picker-label">Conditions</div><div class="seg" role="group" aria-label="Conditions">${segRow('today.conditions', conditions, CONDITIONS)}</div></div>
+  ${surfaceControl(surface)}
 </div>`;
 
-  const blocks = session.blocks.map((b) => blockCard(b, ui, session.meta.warmupType)).join('');
+  const blocks = session.blocks.map((b) => blockCard(b, ui, session.meta.warmupType, surface)).join('');
 
   return `
 <section class="view view-today">
@@ -167,10 +195,10 @@ export function renderToday(store) {
 
   <div class="blocks">${blocks}</div>
 
-  ${afterCard(store, session)}
+  ${afterCard(store)}
 
   <div class="safety-strip">
-    <span class="safety-chip"><span class="sc-ico">👟</span>${footwearShort(conditions)}</span>
+    <span class="safety-chip"><span class="sc-ico">👟</span>${footwearShort(surface)}</span>
     <button class="safety-more" data-action="info.open" data-info="safety">Pain &amp; weather rules <span class="i-inline" aria-hidden="true">i</span></button>
   </div>
 </section>`;
