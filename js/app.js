@@ -55,7 +55,7 @@ function renderNav() {
   const items = VIEWS.map((v) => {
     const on = store.ui.view === v.id;
     return `
-<button class="nav-item${on ? ' active' : ''}" data-view="${v.id}" role="tab" id="tab-${v.id}" aria-selected="${on}">
+<button class="nav-item${on ? ' active' : ''}" data-view="${v.id}" id="tab-${v.id}"${on ? ' aria-current="page"' : ''}>
   <span class="nav-dot"></span><span class="nav-label">${v.label}</span>
 </button>`;
   }).join('');
@@ -374,3 +374,10 @@ function init() {
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
 else init();
+
+// Register the service worker for offline use (best-effort).
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}

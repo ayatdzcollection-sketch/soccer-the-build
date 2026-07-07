@@ -6,6 +6,11 @@
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#f4f2ec",
-  "theme_color": "#13110d",
-  "description": "A daily companion for the phase-by-phase soccer skill program."
+  "theme_color": "#f4f2ec",
+  "description": "A daily companion for the phase-by-phase soccer skill program.",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
 }

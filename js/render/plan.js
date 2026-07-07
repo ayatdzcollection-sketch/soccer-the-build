@@ -28,7 +28,7 @@ const PHASE_DISPLAY = {
 };
 
 function subNav(current) {
-  return `<div class="pnav" role="tablist" aria-label="Plan sections">${SECTIONS
+  return `<div class="pnav" role="group" aria-label="Plan sections">${SECTIONS
     .map((s) => `<button class="pnav-btn" data-action="plan.section" data-value="${s.id}" aria-pressed="${s.id === current}">${s.label}</button>`)
     .join('')}</div>`;
 }
