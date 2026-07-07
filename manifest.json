@@ -1,0 +1,11 @@
+{
+  "name": "The Build — training tracker",
+  "short_name": "The Build",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f2ec",
+  "theme_color": "#13110d",
+  "description": "A daily companion for the phase-by-phase soccer skill program."
+}
