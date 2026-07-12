@@ -14,6 +14,7 @@ import { renderTransfer } from './render/transfer.js';
 import { renderSettings } from './render/settings.js';
 import { drillPopup, notePopup, safetyPopup, surfacePopup } from './render/parts.js';
 import { setGate, promote, undoPromotion } from './gates.js';
+import * as SYNC from './sync.js';
 
 const VIEWS = [
   { id: 'today', label: 'TODAY' },
@@ -36,7 +37,7 @@ const store = {
     settings: { msg: '', msgTone: '', confirmReset: false },
     modal: { open: false, drill: null, info: null },
   },
-  save() { State.save(this.state); },
+  save() { State.save(this.state); SYNC.onLocalChange(); },
   go(view) {
     this.ui.view = view;
     this.ui.settings.msg = '';
@@ -243,14 +244,55 @@ function dispatch(action, ds, e) {
       renderActive();
       break;
     case 'data.resetConfirm':
+      SYNC.unlink(); // otherwise the cloud copy would just restore everything
       State.clearStorage();
       store.state = State.defaultState();
       resetUiToState();
       store.save();
-      ui.settings.msg = 'All data reset.';
+      ui.settings.msg = 'All data reset. Cloud sync was turned off (the cloud copy is untouched).';
       ui.settings.msgTone = 'ok';
       store.go('today');
       break;
+
+    // ----- Cloud sync -----
+    case 'sync.enable': {
+      const c = SYNC.enable();
+      flashToast('Sync is on — code ' + SYNC.formatCode(c));
+      renderActive();
+      break;
+    }
+    case 'sync.link': {
+      const input = document.getElementById('sync-code-input');
+      if (!input) break;
+      if (SYNC.linkWith(input.value)) {
+        ui.settings.msg = '';
+        flashToast('Linked ✓ — pulling your data…');
+        renderActive();
+      } else {
+        ui.settings.msg = 'That doesn’t look like a sync code (16 letters/digits).';
+        ui.settings.msgTone = 'err';
+        renderActive();
+        const again = document.getElementById('sync-code-input');
+        if (again) { again.value = input.value; again.focus(); }
+      }
+      break;
+    }
+    case 'sync.unlink':
+      SYNC.unlink();
+      flashToast('Sync off. Your data stays on this device.');
+      renderActive();
+      break;
+    case 'sync.now':
+      SYNC.syncNow();
+      break;
+    case 'sync.copy': {
+      const text = SYNC.formatCode(SYNC.code());
+      navigator.clipboard.writeText(text).then(
+        () => flashToast('Code copied ✓'),
+        () => flashToast('Copy failed — long-press the code to copy it.'),
+      );
+      break;
+    }
 
     // ----- Weekly review -----
     case 'review.save':
@@ -269,6 +311,7 @@ function saveSession() {
   let time = '';
   try { time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); } catch { time = ''; }
   state.sessions.push({
+    id: `${todayStr()}#${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, // unique across devices → cloud merge unions, never duplicates
     date: todayStr(),
     time,
     minutes: session.minutes,
@@ -290,6 +333,7 @@ function saveReview() {
   const num = (id) => { const v = document.getElementById(id); return v && v.value !== '' ? Number(v.value) : null; };
   const txt = (id) => { const v = document.getElementById(id); return v ? v.value.trim() : ''; };
   state.weeklyReviews.push({
+    id: `${todayStr()}#${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
     date: todayStr(),
     bestFoundationsSec: num('rf-foundations'),
     jugglingPB: num('rf-juggling'),
@@ -345,6 +389,33 @@ function init() {
 
   resetUiToState();
   renderActive();
+
+  // Cloud sync: pull-merge on boot/online/visible, push on change.
+  // onStatus patches the status pill in place (no full re-render, so
+  // typing a link code is never clobbered mid-keystroke); a merge
+  // that changed state re-renders the panel.
+  SYNC.init({
+    getState: () => store.state,
+    applyState: (merged) => {
+      store.state = merged;
+      State.save(merged, false); // keep the merged updatedAt → devices converge
+      // Refresh settings-backed picker state, but keep in-progress UI
+      // (checked blocks, pain/energy selection) so a background merge
+      // never yanks a half-finished session out from under the user.
+      store.ui.today.minutes = merged.settings.defaultMinutes;
+      store.ui.today.surface = merged.settings.surface;
+      renderActive();
+    },
+    onStatus: (s) => {
+      const pill = document.querySelector('[data-sync-status]');
+      if (pill) {
+        pill.dataset.state = s;
+        pill.textContent = SYNC.STATUS_LABEL[s] || s;
+      }
+      const last = document.querySelector('[data-sync-last]');
+      if (last && SYNC.lastSync()) last.textContent = 'Last synced ' + new Date(SYNC.lastSync()).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    },
+  });
 
   document.addEventListener('click', (e) => {
     if (e.target.id === 'modal-backdrop') { closeModal(); return; }

@@ -11,13 +11,15 @@
 //   - export = download a .json file (spec) instead of clipboard
 //   - import = file picker + validation + confirm-overwrite
 //   - reset = two-step confirmation, then clears the key
-// No backend, no accounts, no sync (by design).
+// Cloud: js/sync.js mirrors this state to Supabase (opt-in, code-
+// based). localStorage stays the source of truth; schema v2 adds
+// the ids/updatedAt that make the cloud merge safe.
 // ============================================================
 
 import { DRILL_ORDER, DRILLS } from '../data/plan.js';
 
 export const STORAGE_KEY = 'thebuild.v1';
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 // ------------------------------------------------------------
 // Initial state — the current position is a Phase 1 → 2a bridge.
@@ -58,6 +60,7 @@ export function defaultState() {
     settings: { defaultMinutes: 30, surface: 'both' },
     rotationIndex: 0, // day-to-day main-block rotation
     undoSnapshot: null, // one-deep { drillStates, phase, drillNotes } for promotion undo
+    updatedAt: null, // stamped on every save; cloud merge compares sides with this
   };
 }
 
@@ -97,8 +100,20 @@ export function migrate(state) {
   let s = state;
   const v = typeof s.schemaVersion === 'number' ? s.schemaVersion : 0;
 
-  // Example future migration:
-  // if (v < 2) { s = {...s, someNewField: ...}; }
+  // v2: sessions & reviews get stable ids so cloud sync can union
+  // records from two devices instead of clobbering; updatedAt lets
+  // the merge pick the newer side for scalars.
+  if (v < 2) {
+    if (Array.isArray(s.sessions)) {
+      s.sessions = s.sessions.map((x, i) =>
+        x && typeof x === 'object' && !x.id ? { ...x, id: `${x.date || 'd'}#${x.time || ''}#${i}` } : x);
+    }
+    if (Array.isArray(s.weeklyReviews)) {
+      s.weeklyReviews = s.weeklyReviews.map((x, i) =>
+        x && typeof x === 'object' && !x.id ? { ...x, id: `${x.date || 'd'}#${i}` } : x);
+    }
+    if (!s.updatedAt) s.updatedAt = new Date().toISOString();
+  }
 
   s.schemaVersion = SCHEMA_VERSION;
   return s;
@@ -125,6 +140,7 @@ export function normalize(state) {
     settings: { defaultMinutes: 30, surface: 'both' },
     rotationIndex: Number.isFinite(s.rotationIndex) ? Math.floor(s.rotationIndex) : 0,
     undoSnapshot: s.undoSnapshot && typeof s.undoSnapshot === 'object' ? s.undoSnapshot : null,
+    updatedAt: typeof s.updatedAt === 'string' ? s.updatedAt : null,
   };
 
   // Only carry drillStates for known drills, with a known value.
@@ -156,8 +172,12 @@ function isValidSession(x) {
 // ------------------------------------------------------------
 // Save
 // ------------------------------------------------------------
-export function save(state) {
+// stamp=false is used when applying a cloud-merged state: keeping the
+// merged updatedAt (instead of minting a new one) is what lets both
+// devices converge on an identical blob and stop re-pushing.
+export function save(state, stamp = true) {
   try {
+    if (stamp) state.updatedAt = new Date().toISOString(); // cloud merge picks the newer side
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     return true;
   } catch {
